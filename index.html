@@ -779,6 +779,20 @@ function playOrderProcessingSound(){
 
     countdown.classList.add('show');
     document.body.style.overflow='hidden';
+
+    // Unlock mobile speech while the Confirm Order tap is still an active user gesture.
+    // The silent utterance is not audible; the real message is spoken only on Thank You.
+    try {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const unlockVoice = new SpeechSynthesisUtterance('');
+        unlockVoice.volume = 0;
+        unlockVoice.rate = 1;
+        window.speechSynthesis.speak(unlockVoice);
+        if (window.speechSynthesis.resume) window.speechSynthesis.resume();
+      }
+    } catch (err) {}
+
     // No alarm during countdown.
 
     // Explicitly show 3 -> 2 -> 1, one number at a time.
@@ -804,6 +818,7 @@ function playOrderProcessingSound(){
           msg.rate = 0.95;
           msg.pitch = 1;
           msg.volume = 1;
+          window.speechSynthesis.resume();
           window.speechSynthesis.speak(msg);
         }
       } catch (err) {}
