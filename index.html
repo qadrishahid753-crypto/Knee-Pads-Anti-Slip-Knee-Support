@@ -622,51 +622,6 @@ document.querySelectorAll('.order-thumb').forEach(btn => {
 });
 
 
-document.getElementById('orderForm').addEventListener('submit', function(e) {
-  e.preventDefault();
-
-  const q = Number(qty.value);
-  const name = document.getElementById('name').value.trim();
-  const phone = document.getElementById('phone').value.trim();
-  const city = document.getElementById('city').value.trim();
-  const address = document.getElementById('address').value.trim();
-  const near = document.getElementById('near').value.trim();
-
-  const orderNo = 'KP' + Math.floor(100000 + Math.random() * 900000);
-  const productAmount = PRICE * q;
-  const total = productAmount + DELIVERY;
-
-  document.getElementById('thankOrderNo').innerHTML =
-    '<b>Order #' + orderNo + '</b>';
-
-  document.getElementById('thankQty').textContent = q + (q === 1 ? ' Pair' : ' Pairs');
-  document.getElementById('thankProductPrice').textContent = money(productAmount);
-  document.getElementById('thankTotal').textContent = money(total);
-  document.getElementById('thankName').textContent = name;
-  document.getElementById('thankPhone').textContent = phone;
-  document.getElementById('thankCity').textContent = city;
-  document.getElementById('thankAddress').textContent = address;
-  document.getElementById('thankNear').textContent = near;
-
-  const processing = document.getElementById('processingModal');
-  const count = document.getElementById('countNumber');
-  processing.classList.add('show');
-
-  let number = 3;
-  count.textContent = number;
-
-  const timer = setInterval(() => {
-    number--;
-    if (number > 0) {
-      count.textContent = number;
-    } else {
-      clearInterval(timer);
-      processing.classList.remove('show');
-      document.getElementById('thankyouModal').classList.add('show');
-    }
-  }, 1000);
-});
-
 document.querySelectorAll('a[href="#order"]').forEach(a => a.addEventListener('click', (e) => {
   e.preventDefault();
   const section = document.getElementById('order');
@@ -686,6 +641,30 @@ document.getElementById('orderClose').addEventListener('click', () => {
 </script>
 
 <script>
+
+function playOrderProcessingSound(){
+  try{
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if(!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const now = ctx.currentTime;
+
+    [0, 0.18, 0.36].forEach(function(offset, idx){
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = idx === 2 ? 880 : 660;
+      gain.gain.setValueAtTime(0.0001, now + offset);
+      gain.gain.exponentialRampToValueAtTime(0.12, now + offset + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.14);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now + offset);
+      osc.stop(now + offset + 0.16);
+    });
+  }catch(err){}
+}
+
 (function(){
   const order = document.getElementById('order');
   const openBtn = document.getElementById('openOrder');
@@ -714,6 +693,129 @@ document.getElementById('orderClose').addEventListener('click', () => {
       if(e.target===order) closeOrder(e);
     });
   }
+})();
+</script>
+
+
+<style>
+#confirmCountdown{
+  display:none;position:fixed;inset:0;z-index:9999;
+  background:rgba(4,12,7,.94);color:#fff;
+  align-items:center;justify-content:center;text-align:center;
+}
+#confirmCountdown.show{display:flex}
+.countdown-box{padding:28px}
+.countdown-box .small{font-size:15px;letter-spacing:2px;font-weight:800}
+#countNumber{font-size:110px;line-height:1;margin:18px 0;font-weight:1000;color:#39d353}
+#thankYouPage{
+  display:none;position:fixed;inset:0;z-index:10000;overflow:auto;
+  background:#f5faf6;padding:24px 14px;
+}
+#thankYouPage.show{display:block}
+.thank-card{
+  max-width:520px;margin:8vh auto 30px;background:#fff;border-radius:24px;
+  padding:34px 22px;text-align:center;box-shadow:0 18px 60px rgba(0,0,0,.12);
+  border:1px solid #dfe9e1;
+}
+.thank-icon{
+  width:72px;height:72px;border-radius:50%;background:#39d353;color:#061007;
+  display:flex;align-items:center;justify-content:center;margin:0 auto 18px;
+  font-size:38px;font-weight:900;
+}
+.thank-card h2{font-size:32px;margin:8px 0}
+.thank-card p{color:#647068;line-height:1.6}
+.thank-order{
+  background:#f3f8f4;border-radius:16px;padding:16px;text-align:left;margin:20px 0;
+}
+.thank-order div{display:flex;justify-content:space-between;gap:15px;padding:7px 0}
+.thank-order strong{color:#17221a}
+.thank-close{
+  border:0;border-radius:12px;padding:14px 22px;background:#39d353;
+  color:#061007;font-weight:900;cursor:pointer;width:100%;
+}
+</style>
+
+<div id="confirmCountdown">
+  <div class="countdown-box">
+    <div class="small">ORDER PROCESSING</div>
+    <div id="countNumber">3</div>
+    <div>Please wait...</div>
+  </div>
+</div>
+
+<div id="thankYouPage">
+  <div class="thank-card">
+    <div class="thank-icon">✓</div>
+    <h2>Thank You!</h2>
+    <p>Your order has been received successfully.</p>
+    <div class="thank-order">
+      <div><span>Product</span><strong>Knee Pads Anti-Slip Knee Support</strong></div>
+      <div><span>Quantity</span><strong id="thankQty">1 Pair</strong></div>
+      <div><span>Total</span><strong>Rs. 1,900</strong></div>
+      <div><span>Payment</span><strong>Cash on Delivery</strong></div>
+    </div>
+    <p>Our team will contact you shortly to confirm your order.</p>
+    <button class="thank-close" onclick="location.hash=''; location.reload();">CONTINUE SHOPPING</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  const form = document.getElementById('orderForm');
+  const countdown = document.getElementById('confirmCountdown');
+  const number = document.querySelector('#confirmCountdown #countNumber');
+  const thank = document.getElementById('thankYouPage');
+  const qty = document.querySelector('#orderForm select[name="quantity"], #orderForm select[id*="quantity"], #orderForm input[name="quantity"], #orderForm input[id*="quantity"]');
+
+  if(!form) return;
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+
+    if (typeof form.checkValidity === 'function' && !form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+
+    countdown.classList.add('show');
+    document.body.style.overflow='hidden';
+    // No alarm during countdown.
+
+    // Explicitly show 3 -> 2 -> 1, one number at a time.
+    number.textContent = '3';
+
+    setTimeout(function(){
+      number.textContent = '2';
+    }, 1000);
+
+    setTimeout(function(){
+      number.textContent = '1';
+    }, 2000);
+
+    setTimeout(function(){
+      countdown.classList.remove('show');
+      thank.classList.add('show');
+
+      // Speak only on the Thank You page.
+      try {
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          const msg = new SpeechSynthesisUtterance('Thank you for your order. Your order has been confirmed successfully.');
+          msg.rate = 0.95;
+          msg.pitch = 1;
+          msg.volume = 1;
+          window.speechSynthesis.speak(msg);
+        }
+      } catch (err) {}
+
+      if(qty){
+        const q = parseInt(qty.value || '1', 10);
+        document.getElementById('thankQty').textContent =
+          (q === 1 ? '1 Pair' : q + ' Pairs');
+      }
+    }, 3000);
+
+  });
 })();
 </script>
 
